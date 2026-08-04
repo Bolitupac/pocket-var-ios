@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -7,7 +7,8 @@ import {
   SafeAreaView, 
   ActivityIndicator,
   ScrollView,
-  useWindowDimensions
+  useWindowDimensions,
+  Animated
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -24,14 +25,52 @@ export default function App() {
   const [facing, setFacing] = useState('back');
   const [torch, setTorch] = useState(false);
   const [zoom, setZoom] = useState(0); // 0 to 1
+  const [lens, setLens] = useState('builtInWideAngleCamera'); // 'builtInWideAngleCamera' or 'builtInUltraWideCamera'
   const [permission, requestPermission] = useCameraPermissions();
   const [currentScreen, setCurrentScreen] = useState('camera');
+  
+  // Events state
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [loggedEvent, setLoggedEvent] = useState(null);
+
+  // ScrollView ref for the zoom wheel dial
+  const scrollDialRef = useRef(null);
+  const isUpdatingFromPreset = useRef(false);
 
   // Listen to dimension changes to dynamically respond to orientation
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
-  // Handle loading state while permission check completes
+  // Rotation animation style for buttons to rotate in place based on orientation
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(rotateAnim, {
+      toValue: isLandscape ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isLandscape]);
+
+  const buttonRotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '-90deg'], // Rotates to face upright when phone is sideways
+  });
+
+  const animatedButtonStyle = {
+    transform: [{ rotate: buttonRotation }],
+  };
+
+  // Helper to trigger simulated event logging toast
+  function logEvent(eventType) {
+    setLoggedEvent(eventType);
+    setEventsExpanded(false);
+    setTimeout(() => {
+      setLoggedEvent(null);
+    }, 2500);
+  }
+
+  // Handle loading state
   if (!permission) {
     return (
       <View style={styles.loadingContainer}>
@@ -42,7 +81,7 @@ export default function App() {
     );
   }
 
-  // Handle state where camera permission is not granted yet
+  // Handle state where camera permission is not granted
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
@@ -69,12 +108,34 @@ export default function App() {
     setTorch(current => !current);
   }
 
-  function zoomIn() {
-    setZoom(prev => Math.min(prev + 0.1, 1));
+  // Handle scroll events on the zoom wheel
+  const DIAL_STEP = 15; // Width spacing between tick marks
+  const MAX_SCROLL = 10 * DIAL_STEP; // 10 steps total for 0.0 -> 1.0
+
+  function handleDialScroll(event) {
+    if (isUpdatingFromPreset.current) return;
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const ratio = Math.min(Math.max(offsetX / MAX_SCROLL, 0), 1);
+    setZoom(ratio);
+    if (lens !== 'builtInWideAngleCamera') {
+      setLens('builtInWideAngleCamera');
+    }
   }
 
-  function zoomOut() {
-    setZoom(prev => Math.max(prev - 0.1, 0));
+  // Sync scroll wheel when selecting predefined zoom options
+  function selectZoomPreset(zoomVal, lensVal = 'builtInWideAngleCamera') {
+    isUpdatingFromPreset.current = true;
+    setLens(lensVal);
+    setZoom(zoomVal);
+    
+    if (scrollDialRef.current) {
+      const targetX = zoomVal * MAX_SCROLL;
+      scrollDialRef.current.scrollTo({ x: targetX, animated: true });
+    }
+    
+    setTimeout(() => {
+      isUpdatingFromPreset.current = false;
+    }, 350);
   }
 
   return (
@@ -91,6 +152,7 @@ export default function App() {
               facing={facing}
               enableTorch={torch}
               zoom={zoom}
+              selectedLens={lens}
             >
               {/* Permanent Grid Overlay (Rule of Thirds) */}
               <View style={styles.gridOverlay}>
@@ -115,40 +177,134 @@ export default function App() {
               <View style={styles.hudOverlay}>
                 <View style={styles.hudBadge}>
                   <View style={styles.redDot} />
-                  <Text style={styles.hudText}>POCKET VAR • LIVE PREVIEW</Text>
+                  <Text style={styles.hudText}>POCKET VAR • LIVE</Text>
                 </View>
                 <View style={styles.hudBadge}>
-                  <Text style={styles.hudText}>ZOOM: {Math.round(zoom * 100)}%</Text>
+                  <Text style={styles.hudText}>
+                    {lens === 'builtInUltraWideCamera' ? '0.5x (ULTRA-WIDE)' : `${(1 + zoom * 4).toFixed(1)}x (WIDE)`}
+                  </Text>
                 </View>
               </View>
 
-              {/* Simple Torch toggle on viewfinder */}
-              <TouchableOpacity style={styles.torchButton} onPress={toggleTorch}>
-                <Ionicons 
-                  name={torch ? "flash" : "flash-off"} 
-                  size={20} 
-                  color={torch ? "#eab308" : "#ffffff"} 
-                />
-              </TouchableOpacity>
+              {/* Event Logged Toast Banner */}
+              {loggedEvent && (
+                <View style={styles.loggedToast}>
+                  <Ionicons name="bookmark" size={16} color="#eab308" />
+                  <Text style={styles.loggedToastText}>Event Marked: {loggedEvent}</Text>
+                </View>
+              )}
 
-              {/* Zoom Controls Panel */}
-              <View style={styles.zoomControls}>
-                <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut}>
-                  <Text style={styles.zoomBtnText}>-</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.zoomPreset} onPress={() => setZoom(0)}>
-                  <Text style={[styles.zoomPresetText, zoom === 0 && styles.activeZoomPreset]}>1x</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.zoomPreset} onPress={() => setZoom(0.2)}>
-                  <Text style={[styles.zoomPresetText, zoom === 0.2 && styles.activeZoomPreset]}>2x</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.zoomPreset} onPress={() => setZoom(0.5)}>
-                  <Text style={[styles.zoomPresetText, zoom === 0.5 && styles.activeZoomPreset]}>5x</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn}>
-                  <Text style={styles.zoomBtnText}>+</Text>
-                </TouchableOpacity>
+              {/* Controls overlaid directly on the Viewfinder */}
+              <View style={styles.rightOverlayControls}>
+                {/* Flash Button */}
+                <Animated.View style={animatedButtonStyle}>
+                  <TouchableOpacity style={styles.viewfinderIconBtn} onPress={toggleTorch}>
+                    <Ionicons 
+                      name={torch ? "flash" : "flash-off"} 
+                      size={20} 
+                      color={torch ? "#eab308" : "#ffffff"} 
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
+
+                {/* Expandable Event Logger Button */}
+                <View style={styles.eventsContainer}>
+                  <Animated.View style={animatedButtonStyle}>
+                    <TouchableOpacity 
+                      style={[styles.viewfinderIconBtn, styles.eventsToggleBtn, eventsExpanded && styles.eventsToggleBtnActive]} 
+                      onPress={() => setEventsExpanded(!eventsExpanded)}
+                    >
+                      <Ionicons name="flag" size={18} color={eventsExpanded ? "#3b82f6" : "#ffffff"} />
+                    </TouchableOpacity>
+                  </Animated.View>
+
+                  {/* Expanded Event Selection Menu */}
+                  {eventsExpanded && (
+                    <View style={styles.eventsMenu}>
+                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Goal')}>
+                        <Text style={styles.eventEmoji}>⚽</Text>
+                        <Text style={styles.eventLabel}>Goal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Foul')}>
+                        <Text style={styles.eventEmoji}>⚠️</Text>
+                        <Text style={styles.eventLabel}>Foul</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Yellow Card')}>
+                        <Text style={styles.eventEmoji}>🟨</Text>
+                        <Text style={styles.eventLabel}>Yellow</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Red Card')}>
+                        <Text style={styles.eventEmoji}>🟥</Text>
+                        <Text style={styles.eventLabel}>Red</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Offside')}>
+                        <Text style={styles.eventEmoji}>🚩</Text>
+                        <Text style={styles.eventLabel}>Offside</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               </View>
+
+              {/* Zoom Controls Area: Includes Presets & Scroll Dial Wheel */}
+              <View style={styles.zoomSection}>
+                {/* Preset Zoom Selectors */}
+                <View style={styles.zoomPresetRow}>
+                  <TouchableOpacity 
+                    style={[styles.zoomPresetBubble, lens === 'builtInUltraWideCamera' && styles.zoomPresetBubbleActive]} 
+                    onPress={() => selectZoomPreset(0, 'builtInUltraWideCamera')}
+                  >
+                    <Text style={styles.zoomPresetBubbleText}>0.5x</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 0 && styles.zoomPresetBubbleActive]} 
+                    onPress={() => selectZoomPreset(0)}
+                  >
+                    <Text style={styles.zoomPresetBubbleText}>1x</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 0.25 && styles.zoomPresetBubbleActive]} 
+                    onPress={() => selectZoomPreset(0.25)}
+                  >
+                    <Text style={styles.zoomPresetBubbleText}>2x</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 1.0 && styles.zoomPresetBubbleActive]} 
+                    onPress={() => selectZoomPreset(1.0)}
+                  >
+                    <Text style={styles.zoomPresetBubbleText}>5x</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Scroll Dial Wheel */}
+                <View style={styles.dialContainer}>
+                  {/* Center Indicator needle */}
+                  <View style={styles.dialCenterIndicator} />
+                  
+                  <ScrollView
+                    ref={scrollDialRef}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    scrollEventThrottle={16}
+                    onScroll={handleDialScroll}
+                    contentContainerStyle={styles.dialScrollContent}
+                  >
+                    {/* Render Dial Ticks */}
+                    {[...Array(11)].map((_, i) => (
+                      <View key={i} style={styles.tickWrapper}>
+                        <View style={[styles.tickLine, i % 5 === 0 && styles.tickLineMajor]} />
+                        {i % 5 === 0 && (
+                          <Text style={styles.tickLabel}>{(1 + (i / 10) * 4).toFixed(0)}x</Text>
+                        )}
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+
             </CameraView>
           </View>
 
@@ -157,10 +313,12 @@ export default function App() {
             <View style={isLandscape ? styles.controlColLandscape : styles.controlRowPortrait}>
               
               {/* Bottom Left / Top: Review button */}
-              <TouchableOpacity style={styles.basicButton} onPress={() => setCurrentScreen('review')}>
-                <Ionicons name="albums" size={24} color="#ffffff" />
-                <Text style={styles.basicButtonText}>Review</Text>
-              </TouchableOpacity>
+              <Animated.View style={animatedButtonStyle}>
+                <TouchableOpacity style={styles.basicButton} onPress={() => setCurrentScreen('review')}>
+                  <Ionicons name="albums" size={24} color="#ffffff" />
+                  <Text style={styles.basicButtonText}>Review</Text>
+                </TouchableOpacity>
+              </Animated.View>
 
               {/* Center: Shutter Button (Mock record event) */}
               <View style={styles.shutterButton}>
@@ -168,10 +326,12 @@ export default function App() {
               </View>
 
               {/* Bottom Right / Bottom: Flip Lens button */}
-              <TouchableOpacity style={styles.basicButton} onPress={toggleCameraFacing}>
-                <Ionicons name="camera-reverse" size={24} color="#ffffff" />
-                <Text style={styles.basicButtonText}>Flip</Text>
-              </TouchableOpacity>
+              <Animated.View style={animatedButtonStyle}>
+                <TouchableOpacity style={styles.basicButton} onPress={toggleCameraFacing}>
+                  <Ionicons name="camera-reverse" size={24} color="#ffffff" />
+                  <Text style={styles.basicButtonText}>Flip</Text>
+                </TouchableOpacity>
+              </Animated.View>
 
             </View>
           </View>
@@ -326,6 +486,7 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    zIndex: 10,
   },
   hudBadge: {
     flexDirection: 'row',
@@ -348,53 +509,169 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Torch Button
-  torchButton: {
+  // Logged Event Toast
+  loggedToast: {
+    position: 'absolute',
+    top: 60,
+    left: '10%',
+    right: '10%',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    borderWidth: 1,
+    borderColor: '#eab308',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  loggedToastText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+
+  // Right-side viewfinder overlays
+  rightOverlayControls: {
     position: 'absolute',
     top: 16,
     right: 16,
+    alignItems: 'flex-end',
+    zIndex: 15,
+  },
+  viewfinderIconBtn: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
 
-  // Zoom Controls Panel
-  zoomControls: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingVertical: 8,
-    borderRadius: 24,
+  // Events Logger drawer
+  eventsContainer: {
+    alignItems: 'flex-end',
+  },
+  eventsToggleBtn: {},
+  eventsToggleBtnActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  eventsMenu: {
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#333333',
+    padding: 6,
+    width: 110,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  zoomBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+  eventItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
   },
-  zoomBtnText: {
+  eventEmoji: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  eventLabel: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // Zoom Section
+  zoomSection: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  zoomPresetRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  zoomPresetBubble: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  zoomPresetBubbleActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#000000',
+  },
+  zoomPresetBubbleText: {
+    color: '#ffffff',
+    fontSize: 10,
     fontWeight: 'bold',
   },
-  zoomPreset: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+
+  // Smooth Dial Scroll Control
+  dialContainer: {
+    width: 200,
+    height: 44,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#222222',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  zoomPresetText: {
+  dialCenterIndicator: {
+    position: 'absolute',
+    left: '50%',
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: '#3b82f6',
+    marginLeft: -1,
+    zIndex: 5,
+  },
+  dialScrollContent: {
+    paddingHorizontal: 100, // Half of dial container width to center align ticks at offset 0
+    alignItems: 'center',
+  },
+  tickWrapper: {
+    width: 15, // spacing matches DIAL_STEP
+    alignItems: 'center',
+    position: 'relative',
+  },
+  tickLine: {
+    width: 1,
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  tickLineMajor: {
+    height: 16,
+    backgroundColor: '#ffffff',
+  },
+  tickLabel: {
+    position: 'absolute',
+    top: 20,
     color: '#888888',
-    fontSize: 13,
-  },
-  activeZoomPreset: {
-    color: '#3b82f6',
+    fontSize: 8,
     fontWeight: 'bold',
   },
 
