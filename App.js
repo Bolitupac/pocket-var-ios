@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   ScrollView,
   useWindowDimensions,
-  Animated
+  Animated,
+  TextInput
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -22,12 +23,18 @@ const mockClips = [
 ];
 
 export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('createMatch'); // Default first page
+  const [team1, setTeam1] = useState('');
+  const [team2, setTeam2] = useState('');
+  const [stadium, setStadium] = useState('');
+  const [activeMatch, setActiveMatch] = useState(null);
+
+  // Camera settings state
   const [facing, setFacing] = useState('back');
   const [torch, setTorch] = useState(false);
   const [zoom, setZoom] = useState(0); // 0 to 1
-  const [lens, setLens] = useState('builtInWideAngleCamera'); // 'builtInWideAngleCamera' or 'builtInUltraWideCamera'
+  const [lens, setLens] = useState('builtInWideAngleCamera');
   const [permission, requestPermission] = useCameraPermissions();
-  const [currentScreen, setCurrentScreen] = useState('camera');
   
   // Events state
   const [eventsExpanded, setEventsExpanded] = useState(false);
@@ -37,7 +44,7 @@ export default function App() {
   const scrollDialRef = useRef(null);
   const isUpdatingFromPreset = useRef(false);
 
-  // Listen to dimension changes to dynamically respond to orientation
+  // Listen to dimension changes for orientation responsiveness
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -54,14 +61,28 @@ export default function App() {
 
   const buttonRotation = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '-90deg'], // Rotates to face upright when phone is sideways
+    outputRange: ['0deg', '-90deg'],
   });
 
   const animatedButtonStyle = {
     transform: [{ rotate: buttonRotation }],
   };
 
-  // Helper to trigger simulated event logging toast
+  // Create match action
+  function handleCreateMatch() {
+    if (!team1.trim() || !team2.trim() || !stadium.trim()) {
+      alert('Please fill in both teams and the stadium name.');
+      return;
+    }
+    setActiveMatch({
+      team1: team1.trim(),
+      team2: team2.trim(),
+      stadium: stadium.trim()
+    });
+    setCurrentScreen('camera');
+  }
+
+  // Trigger simulated event logging toast
   function logEvent(eventType) {
     setLoggedEvent(eventType);
     setEventsExpanded(false);
@@ -81,8 +102,8 @@ export default function App() {
     );
   }
 
-  // Handle state where camera permission is not granted
-  if (!permission.granted) {
+  // Handle state where camera permission is not granted (only checks if trying to access Camera)
+  if (currentScreen === 'camera' && !permission.granted) {
     return (
       <View style={styles.permissionContainer}>
         <StatusBar style="light" />
@@ -94,6 +115,9 @@ export default function App() {
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Allow Camera</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.permissionBackLink} onPress={() => setCurrentScreen('createMatch')}>
+            <Text style={styles.permissionBackLinkText}>Back to Setup</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -109,8 +133,8 @@ export default function App() {
   }
 
   // Handle scroll events on the zoom wheel
-  const DIAL_STEP = 15; // Width spacing between tick marks
-  const MAX_SCROLL = 10 * DIAL_STEP; // 10 steps total for 0.0 -> 1.0
+  const DIAL_STEP = 15;
+  const MAX_SCROLL = 10 * DIAL_STEP;
 
   function handleDialScroll(event) {
     if (isUpdatingFromPreset.current) return;
@@ -142,203 +166,277 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {currentScreen === 'camera' ? (
-        <View style={isLandscape ? styles.landscapeLayout : styles.portraitLayout}>
+      {currentScreen === 'createMatch' ? (
+        /* 1. Create Match Page (Default screen) */
+        <ScrollView contentContainerStyle={styles.createMatchScroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.brandContainer}>
+            <Ionicons name="football" size={48} color="#3b82f6" />
+            <Text style={styles.brandTitle}>POCKET VAR</Text>
+            <Text style={styles.brandSubtitle}>Grassroots Football Technology</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <Text style={styles.formTitle}>Create Match Session</Text>
+            
+            <Text style={styles.inputLabel}>Home Team</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. United FC"
+              placeholderTextColor="#555555"
+              value={team1}
+              onChangeText={setTeam1}
+              autoCapitalize="words"
+            />
+
+            <Text style={styles.inputLabel}>Away Team</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Rovers FC"
+              placeholderTextColor="#555555"
+              value={team2}
+              onChangeText={setTeam2}
+              autoCapitalize="words"
+            />
+
+            <Text style={styles.inputLabel}>Stadium / Pitch Name</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. Central Pitch A"
+              placeholderTextColor="#555555"
+              value={stadium}
+              onChangeText={setStadium}
+              autoCapitalize="words"
+            />
+
+            <TouchableOpacity style={styles.createButton} onPress={handleCreateMatch}>
+              <Text style={styles.createButtonText}>Create & Open Camera</Text>
+              <Ionicons name="arrow-forward" size={16} color="#ffffff" style={{ marginLeft: 8 }} />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : currentScreen === 'camera' ? (
+        /* 2. Camera Viewfinder Screen */
+        <View style={styles.cameraLayoutContainer}>
           
-          {/* Camera Viewport Area */}
-          <View style={styles.viewportContainer}>
-            <CameraView 
-              style={styles.camera} 
-              facing={facing}
-              enableTorch={torch}
-              zoom={zoom}
-              selectedLens={lens}
-            >
-              {/* Permanent Grid Overlay (Rule of Thirds) */}
-              <View style={styles.gridOverlay}>
-                <View style={styles.gridRow}>
-                  <View style={styles.gridCell} />
-                  <View style={[styles.gridCell, styles.borderLeftRight]} />
-                  <View style={styles.gridCell} />
-                </View>
-                <View style={[styles.gridRow, styles.borderTopBottom]}>
-                  <View style={styles.gridCell} />
-                  <View style={[styles.gridCell, styles.borderLeftRight]} />
-                  <View style={styles.gridCell} />
-                </View>
-                <View style={styles.gridRow}>
-                  <View style={styles.gridCell} />
-                  <View style={[styles.gridCell, styles.borderLeftRight]} />
-                  <View style={styles.gridCell} />
-                </View>
-              </View>
+          {/* Header Bar with Back Button & Active Match Details */}
+          <View style={styles.cameraHeader}>
+            <Animated.View style={animatedButtonStyle}>
+              <TouchableOpacity 
+                style={styles.headerBackBtn} 
+                onPress={() => setCurrentScreen('createMatch')}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+                <Text style={styles.headerBackText}>Exit</Text>
+              </TouchableOpacity>
+            </Animated.View>
+            
+            <View style={styles.matchHeaderInfo}>
+              <Text style={styles.matchHeaderTeams} numberOfLines={1}>
+                {activeMatch ? `${activeMatch.team1} vs ${activeMatch.team2}` : 'Match Preview'}
+              </Text>
+              <Text style={styles.matchHeaderStadium} numberOfLines={1}>
+                {activeMatch ? `@ ${activeMatch.stadium}` : ''}
+              </Text>
+            </View>
 
-              {/* HUD / Status Indicators */}
-              <View style={styles.hudOverlay}>
-                <View style={styles.hudBadge}>
-                  <View style={styles.redDot} />
-                  <Text style={styles.hudText}>POCKET VAR • LIVE</Text>
-                </View>
-                <View style={styles.hudBadge}>
-                  <Text style={styles.hudText}>
-                    {lens === 'builtInUltraWideCamera' ? '0.5x (ULTRA-WIDE)' : `${(1 + zoom * 4).toFixed(1)}x (WIDE)`}
-                  </Text>
-                </View>
-              </View>
+            <View style={{ width: 60 }} />
+          </View>
 
-              {/* Event Logged Toast Banner */}
-              {loggedEvent && (
-                <View style={styles.loggedToast}>
-                  <Ionicons name="bookmark" size={16} color="#eab308" />
-                  <Text style={styles.loggedToastText}>Event Marked: {loggedEvent}</Text>
+          <View style={isLandscape ? styles.landscapeLayout : styles.portraitLayout}>
+            
+            {/* Camera Viewport Area */}
+            <View style={styles.viewportContainer}>
+              <CameraView 
+                style={styles.camera} 
+                facing={facing}
+                enableTorch={torch}
+                zoom={zoom}
+                selectedLens={lens}
+              >
+                {/* Permanent Grid Overlay (Rule of Thirds) */}
+                <View style={styles.gridOverlay}>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCell} />
+                    <View style={[styles.gridCell, styles.borderLeftRight]} />
+                    <View style={styles.gridCell} />
+                  </View>
+                  <View style={[styles.gridRow, styles.borderTopBottom]}>
+                    <View style={styles.gridCell} />
+                    <View style={[styles.gridCell, styles.borderLeftRight]} />
+                    <View style={styles.gridCell} />
+                  </View>
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCell} />
+                    <View style={[styles.gridCell, styles.borderLeftRight]} />
+                    <View style={styles.gridCell} />
+                  </View>
                 </View>
-              )}
 
-              {/* Controls overlaid directly on the Viewfinder */}
-              <View style={styles.rightOverlayControls}>
-                {/* Flash Button */}
-                <Animated.View style={animatedButtonStyle}>
-                  <TouchableOpacity style={styles.viewfinderIconBtn} onPress={toggleTorch}>
-                    <Ionicons 
-                      name={torch ? "flash" : "flash-off"} 
-                      size={20} 
-                      color={torch ? "#eab308" : "#ffffff"} 
-                    />
-                  </TouchableOpacity>
-                </Animated.View>
+                {/* HUD / Status Indicators */}
+                <View style={styles.hudOverlay}>
+                  <View style={styles.hudBadge}>
+                    <View style={styles.redDot} />
+                    <Text style={styles.hudText}>POCKET VAR • LIVE</Text>
+                  </View>
+                  <View style={styles.hudBadge}>
+                    <Text style={styles.hudText}>
+                      {lens === 'builtInUltraWideCamera' ? '0.5x (ULTRA-WIDE)' : `${(1 + zoom * 4).toFixed(1)}x (WIDE)`}
+                    </Text>
+                  </View>
+                </View>
 
-                {/* Expandable Event Logger Button */}
-                <View style={styles.eventsContainer}>
+                {/* Event Logged Toast Banner */}
+                {loggedEvent && (
+                  <View style={styles.loggedToast}>
+                    <Ionicons name="bookmark" size={16} color="#eab308" />
+                    <Text style={styles.loggedToastText}>Event Marked: {loggedEvent}</Text>
+                  </View>
+                )}
+
+                {/* Controls overlaid directly on the Viewfinder */}
+                <View style={styles.rightOverlayControls}>
+                  {/* Flash Button */}
                   <Animated.View style={animatedButtonStyle}>
-                    <TouchableOpacity 
-                      style={[styles.viewfinderIconBtn, styles.eventsToggleBtn, eventsExpanded && styles.eventsToggleBtnActive]} 
-                      onPress={() => setEventsExpanded(!eventsExpanded)}
-                    >
-                      <Ionicons name="flag" size={18} color={eventsExpanded ? "#3b82f6" : "#ffffff"} />
+                    <TouchableOpacity style={styles.viewfinderIconBtn} onPress={toggleTorch}>
+                      <Ionicons 
+                        name={torch ? "flash" : "flash-off"} 
+                        size={20} 
+                        color={torch ? "#eab308" : "#ffffff"} 
+                      />
                     </TouchableOpacity>
                   </Animated.View>
 
-                  {/* Expanded Event Selection Menu */}
-                  {eventsExpanded && (
-                    <View style={styles.eventsMenu}>
-                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Goal')}>
-                        <Text style={styles.eventEmoji}>⚽</Text>
-                        <Text style={styles.eventLabel}>Goal</Text>
+                  {/* Expandable Event Logger Button */}
+                  <View style={styles.eventsContainer}>
+                    <Animated.View style={animatedButtonStyle}>
+                      <TouchableOpacity 
+                        style={[styles.viewfinderIconBtn, styles.eventsToggleBtn, eventsExpanded && styles.eventsToggleBtnActive]} 
+                        onPress={() => setEventsExpanded(!eventsExpanded)}
+                      >
+                        <Ionicons name="flag" size={18} color={eventsExpanded ? "#3b82f6" : "#ffffff"} />
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Foul')}>
-                        <Text style={styles.eventEmoji}>⚠️</Text>
-                        <Text style={styles.eventLabel}>Foul</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Yellow Card')}>
-                        <Text style={styles.eventEmoji}>🟨</Text>
-                        <Text style={styles.eventLabel}>Yellow</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Red Card')}>
-                        <Text style={styles.eventEmoji}>🟥</Text>
-                        <Text style={styles.eventLabel}>Red</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Offside')}>
-                        <Text style={styles.eventEmoji}>🚩</Text>
-                        <Text style={styles.eventLabel}>Offside</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </View>
+                    </Animated.View>
 
-              {/* Zoom Controls Area: Includes Presets & Scroll Dial Wheel */}
-              <View style={styles.zoomSection}>
-                {/* Preset Zoom Selectors */}
-                <View style={styles.zoomPresetRow}>
-                  <TouchableOpacity 
-                    style={[styles.zoomPresetBubble, lens === 'builtInUltraWideCamera' && styles.zoomPresetBubbleActive]} 
-                    onPress={() => selectZoomPreset(0, 'builtInUltraWideCamera')}
-                  >
-                    <Text style={styles.zoomPresetBubbleText}>0.5x</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 0 && styles.zoomPresetBubbleActive]} 
-                    onPress={() => selectZoomPreset(0)}
-                  >
-                    <Text style={styles.zoomPresetBubbleText}>1x</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 0.25 && styles.zoomPresetBubbleActive]} 
-                    onPress={() => selectZoomPreset(0.25)}
-                  >
-                    <Text style={styles.zoomPresetBubbleText}>2x</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 1.0 && styles.zoomPresetBubbleActive]} 
-                    onPress={() => selectZoomPreset(1.0)}
-                  >
-                    <Text style={styles.zoomPresetBubbleText}>5x</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Scroll Dial Wheel */}
-                <View style={styles.dialContainer}>
-                  {/* Center Indicator needle */}
-                  <View style={styles.dialCenterIndicator} />
-                  
-                  <ScrollView
-                    ref={scrollDialRef}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    scrollEventThrottle={16}
-                    onScroll={handleDialScroll}
-                    contentContainerStyle={styles.dialScrollContent}
-                  >
-                    {/* Render Dial Ticks */}
-                    {[...Array(11)].map((_, i) => (
-                      <View key={i} style={styles.tickWrapper}>
-                        <View style={[styles.tickLine, i % 5 === 0 && styles.tickLineMajor]} />
-                        {i % 5 === 0 && (
-                          <Text style={styles.tickLabel}>{(1 + (i / 10) * 4).toFixed(0)}x</Text>
-                        )}
+                    {/* Expanded Event Selection Menu */}
+                    {eventsExpanded && (
+                      <View style={styles.eventsMenu}>
+                        <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Goal')}>
+                          <Text style={styles.eventEmoji}>⚽</Text>
+                          <Text style={styles.eventLabel}>Goal</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Foul')}>
+                          <Text style={styles.eventEmoji}>⚠️</Text>
+                          <Text style={styles.eventLabel}>Foul</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Yellow Card')}>
+                          <Text style={styles.eventEmoji}>🟨</Text>
+                          <Text style={styles.eventLabel}>Yellow</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Red Card')}>
+                          <Text style={styles.eventEmoji}>🟥</Text>
+                          <Text style={styles.eventLabel}>Red</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.eventItem} onPress={() => logEvent('Offside')}>
+                          <Text style={styles.eventEmoji}>🚩</Text>
+                          <Text style={styles.eventLabel}>Offside</Text>
+                        </TouchableOpacity>
                       </View>
-                    ))}
-                  </ScrollView>
+                    )}
+                  </View>
                 </View>
-              </View>
 
-            </CameraView>
-          </View>
+                {/* Zoom Controls Area: Includes Presets & Scroll Dial Wheel */}
+                <View style={styles.zoomSection}>
+                  {/* Preset Zoom Selectors */}
+                  <View style={styles.zoomPresetRow}>
+                    <TouchableOpacity 
+                      style={[styles.zoomPresetBubble, lens === 'builtInUltraWideCamera' && styles.zoomPresetBubbleActive]} 
+                      onPress={() => selectZoomPreset(0, 'builtInUltraWideCamera')}
+                    >
+                      <Text style={styles.zoomPresetBubbleText}>0.5x</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 0 && styles.zoomPresetBubbleActive]} 
+                      onPress={() => selectZoomPreset(0)}
+                    >
+                      <Text style={styles.zoomPresetBubbleText}>1x</Text>
+                    </TouchableOpacity>
 
-          {/* Simple Control Bar */}
-          <View style={isLandscape ? styles.controlsLandscape : styles.controlsPortrait}>
-            <View style={isLandscape ? styles.controlColLandscape : styles.controlRowPortrait}>
-              
-              {/* Bottom Left / Top: Review button */}
-              <Animated.View style={animatedButtonStyle}>
-                <TouchableOpacity style={styles.basicButton} onPress={() => setCurrentScreen('review')}>
-                  <Ionicons name="albums" size={24} color="#ffffff" />
-                  <Text style={styles.basicButtonText}>Review</Text>
-                </TouchableOpacity>
-              </Animated.View>
+                    <TouchableOpacity 
+                      style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 0.25 && styles.zoomPresetBubbleActive]} 
+                      onPress={() => selectZoomPreset(0.25)}
+                    >
+                      <Text style={styles.zoomPresetBubbleText}>2x</Text>
+                    </TouchableOpacity>
 
-              {/* Center: Shutter Button (Mock record event) */}
-              <View style={styles.shutterButton}>
-                <View style={styles.shutterInner} />
-              </View>
+                    <TouchableOpacity 
+                      style={[styles.zoomPresetBubble, lens === 'builtInWideAngleCamera' && zoom === 1.0 && styles.zoomPresetBubbleActive]} 
+                      onPress={() => selectZoomPreset(1.0)}
+                    >
+                      <Text style={styles.zoomPresetBubbleText}>5x</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              {/* Bottom Right / Bottom: Flip Lens button */}
-              <Animated.View style={animatedButtonStyle}>
-                <TouchableOpacity style={styles.basicButton} onPress={toggleCameraFacing}>
-                  <Ionicons name="camera-reverse" size={24} color="#ffffff" />
-                  <Text style={styles.basicButtonText}>Flip</Text>
-                </TouchableOpacity>
-              </Animated.View>
+                  {/* Scroll Dial Wheel */}
+                  <View style={styles.dialContainer}>
+                    <View style={styles.dialCenterIndicator} />
+                    
+                    <ScrollView
+                      ref={scrollDialRef}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      scrollEventThrottle={16}
+                      onScroll={handleDialScroll}
+                      contentContainerStyle={styles.dialScrollContent}
+                    >
+                      {[...Array(11)].map((_, i) => (
+                        <View key={i} style={styles.tickWrapper}>
+                          <View style={[styles.tickLine, i % 5 === 0 && styles.tickLineMajor]} />
+                          {i % 5 === 0 && (
+                            <Text style={styles.tickLabel}>{(1 + (i / 10) * 4).toFixed(0)}x</Text>
+                          )}
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
 
+              </CameraView>
             </View>
-          </View>
 
+            {/* Simple Control Bar */}
+            <View style={isLandscape ? styles.controlsLandscape : styles.controlsPortrait}>
+              <View style={isLandscape ? styles.controlColLandscape : styles.controlRowPortrait}>
+                
+                {/* Bottom Left / Top: Review button */}
+                <Animated.View style={animatedButtonStyle}>
+                  <TouchableOpacity style={styles.basicButton} onPress={() => setCurrentScreen('review')}>
+                    <Ionicons name="albums" size={24} color="#ffffff" />
+                    <Text style={styles.basicButtonText}>Review</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+
+                {/* Center: Shutter Button (Mock record event) */}
+                <View style={styles.shutterButton}>
+                  <View style={styles.shutterInner} />
+                </View>
+
+                {/* Bottom Right / Bottom: Flip Lens button */}
+                <Animated.View style={animatedButtonStyle}>
+                  <TouchableOpacity style={styles.basicButton} onPress={toggleCameraFacing}>
+                    <Ionicons name="camera-reverse" size={24} color="#ffffff" />
+                    <Text style={styles.basicButtonText}>Flip</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+
+              </View>
+            </View>
+
+          </View>
         </View>
       ) : (
-        /* Review Screen */
+        /* 3. Review Screen */
         <View style={styles.reviewContainer}>
           <View style={styles.reviewHeader}>
             <TouchableOpacity onPress={() => setCurrentScreen('camera')} style={styles.backButton}>
@@ -350,10 +448,12 @@ export default function App() {
           </View>
 
           <ScrollView contentContainerStyle={styles.clipsListContent} style={styles.clipsList}>
-            <Text style={styles.sectionHeader}>Pocket VAR Matches & Clips</Text>
+            <Text style={styles.sectionHeader}>
+              {activeMatch ? `${activeMatch.team1} vs ${activeMatch.team2}` : 'Pocket VAR Match Session'}
+            </Text>
             {mockClips.map((clip) => (
               <View key={clip.id} style={styles.clipCard}>
-                <View style={styles.clipInfo}>
+                <View style={clip.clipInfo}>
                   <Text style={styles.clipType}>{clip.type}</Text>
                   <Text style={styles.clipMeta}>Timestamp: {clip.timestamp} | {clip.angles} Angles Synced</Text>
                 </View>
@@ -435,6 +535,131 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+  permissionBackLink: {
+    marginTop: 16,
+    paddingVertical: 6,
+  },
+  permissionBackLinkText: {
+    color: '#3b82f6',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+
+  // Create Match Setup Styles
+  createMatchScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#000000',
+  },
+  brandContainer: {
+    alignItems: 'center',
+    marginBottom: 36,
+  },
+  brandTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 3,
+    marginTop: 12,
+  },
+  brandSubtitle: {
+    fontSize: 10,
+    color: '#3b82f6',
+    letterSpacing: 2,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+  },
+  formContainer: {
+    backgroundColor: '#111111',
+    borderRadius: 12,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  formTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  inputLabel: {
+    color: '#888888',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  textInput: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  createButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  createButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+
+  // Camera Header Bar Styles
+  cameraLayoutContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  cameraHeader: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderColor: '#111111',
+    backgroundColor: '#000000',
+  },
+  headerBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingRight: 12,
+  },
+  headerBackText: {
+    color: '#ffffff',
+    fontSize: 14,
+    marginLeft: 2,
+    fontWeight: '500',
+  },
+  matchHeaderInfo: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  matchHeaderTeams: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  matchHeaderStadium: {
+    color: '#888888',
+    fontSize: 10,
+    marginTop: 2,
+  },
 
   // Screen Layouts
   portraitLayout: {
@@ -515,7 +740,7 @@ const styles = StyleSheet.create({
     top: 60,
     left: '10%',
     right: '10%',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     borderWidth: 1,
     borderColor: '#eab308',
     borderRadius: 8,
@@ -650,11 +875,11 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   dialScrollContent: {
-    paddingHorizontal: 100, // Half of dial container width to center align ticks at offset 0
+    paddingHorizontal: 100,
     alignItems: 'center',
   },
   tickWrapper: {
-    width: 15, // spacing matches DIAL_STEP
+    width: 15,
     alignItems: 'center',
     position: 'relative',
   },
