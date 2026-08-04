@@ -1,19 +1,38 @@
-# Pocket Var Camera (iOS Preview App)
+# Pocket VAR (iOS Version)
 
-A sleek, premium camera preview application built with React Native and Expo. This app is designed for iOS devices, featuring a high-end dark mode UI inspired by professional video gear, and integrates essential camera features.
+Here’s a clear summary of Pocket VAR from your Notion + a practical plan to start building the iOS version today.
 
 ---
 
-## 📱 Project Overview & Features
+## ⚽ What Pocket VAR is
 
-- **Live Camera Viewfinder**: High-performance camera preview using the modern `expo-camera` API.
-- **Interactive Controls**:
-  - **Camera Flip**: Smoothly switch between front and back camera lenses.
-  - **Torch/Flash Switch**: Dynamic toggle control for the device's torch.
-  - **Rule-of-Thirds Grid Overlay**: Toggleable framing guide lines to help frame shots perfectly.
-  - **iOS-style Shutter**: A custom circular shutter button with premium visual feedback.
-  - **Premium Dark HUD Theme**: Visual badges (`REC PREVIEW`, active lens label) for a high-end look.
-- **iOS Permission Request flow**: Custom, stylized dark permission check screen before triggering the native OS camera permission dialog.
+**Tagline**: Bringing tech to grassroots football.
+
+It’s a mobile-first system that turns multiple smartphones into synchronized cameras so grassroots football (schools, academies, local leagues, tournaments) can have:
+- **Affordable multi-angle video replay** (like a cheap VAR for referees)
+- **Easy multi-angle highlight export** for coaches/players
+
+### Core Idea
+Several phones record the same match from different angles. Videos are synced so people can jump to a moment, switch angles, slow-mo, and export clean multi-angle clips.
+
+### Two Recording Modes (MVP)
+1. **Full Match** – Continuous recording.
+2. **Action-Clip Mode** – Rolling buffer. When someone taps an event button (Goal, Foul, etc.), it saves ~40s before + ~40s after that moment (saves storage and makes highlights faster).
+
+### Target Users
+Academies, schools/universities, local leagues, tournament organizers, referees, coaches, players.
+
+### MVP Must-Haves
+- Auth
+- Create/Join match
+- Multi-device recording (~4 cameras target)
+- Event buttons
+- Video sync
+- Multi-angle replay + slow-mo
+- Timeline/bookmarks
+- Multi-angle highlight export
+- Upload that survives disconnects
+- Match history
 
 ---
 
@@ -24,43 +43,24 @@ A sleek, premium camera preview application built with React Native and Expo. Th
 - **React Version**: `19.1.0`
 
 ### Installed Packages
-
-These packages were installed to support modern camera functionality and premium styling:
-* **`expo-camera` (`~17.0.10`)**: The core library providing camera preview components and lens/torch configuration APIs.
-* **`@expo/vector-icons` (`^15.0.3`)**: Library for integrating iOS-style Ionicons for control buttons.
+- **`expo-camera` (`~17.0.10`)**: Component for live camera preview, zoom, and lens/torch configuration.
+- **`@expo/vector-icons` (`^15.0.3`)**: Premium icons for camera settings and UI controls.
 
 ---
 
 ## 🚀 How to Run the Project
 
 ### 1. Install Dependencies
-Ensure you have Node.js installed. Open your terminal in the project folder and run:
+Run this in the project root:
 ```bash
 npm install
 ```
 
 ### 2. Start the Expo Server
-Launch the Expo development server:
 ```bash
 npm run start
 ```
-*Alternatively, you can run `npx expo start`.*
 
 ### 3. Run on iOS
-
-#### Option A: Using the Expo Go App (Physical iPhone)
-1. Download the **Expo Go** app from the App Store on your iPhone.
-2. Ensure your computer and iPhone are on the **same Wi-Fi network**.
-3. Scan the QR code displayed in your terminal using the iOS Camera app (or directly within the Expo Go app).
-
-#### Option B: iOS Simulator (Mac required)
-1. Ensure Xcode is installed on your Mac.
-2. In the terminal where the Expo server is running, press **`i`** to automatically launch and run the app on the iOS Simulator.
-
----
-
-## 📂 Project Structure
-
-- **`App.js`**: Holds the main application logic, permissions handler, camera views, controls, and styles.
-- **`app.json`**: Expo configuration specifying application details, iOS-specific camera plugins, and user permissions descriptions.
-- **`package.json`**: Contains script configurations, dependencies, and metadata.
+- **Expo Go App (Physical iPhone)**: Download "Expo Go" from the App Store. Connect your iPhone and computer to the same Wi-Fi network, and scan the terminal's QR code.
+- **iOS Simulator (Mac)**: Press **`i`** in the terminal to launch the app on the simulator.

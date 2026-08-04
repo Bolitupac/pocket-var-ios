@@ -5,51 +5,62 @@ import {
   View, 
   TouchableOpacity, 
   SafeAreaView, 
-  ActivityIndicator 
+  ActivityIndicator,
+  ScrollView,
+  useWindowDimensions
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 
+const mockClips = [
+  { id: '1', type: 'Goal Event', timestamp: '14:20', angles: 3 },
+  { id: '2', type: 'Foul Event', timestamp: '32:45', angles: 4 },
+  { id: '3', type: 'Offside Event', timestamp: '45:10', angles: 2 },
+  { id: '4', type: 'Action Highlight', timestamp: '78:15', angles: 3 },
+];
+
 export default function App() {
   const [facing, setFacing] = useState('back');
   const [torch, setTorch] = useState(false);
+  const [zoom, setZoom] = useState(0); // 0 to 1
   const [permission, requestPermission] = useCameraPermissions();
-  const [gridVisible, setGridVisible] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState('camera');
 
-  // 1. Handle loading state while permission check completes
+  // Listen to dimension changes to dynamically respond to orientation
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
+  // Handle loading state while permission check completes
   if (!permission) {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar style="light" />
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color="#ffffff" />
         <Text style={styles.loadingText}>Initializing camera...</Text>
       </View>
     );
   }
 
-  // 2. Handle state where camera permission is not granted yet
+  // Handle state where camera permission is not granted yet
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
         <StatusBar style="light" />
         <View style={styles.permissionCard}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="camera" size={48} color="#3b82f6" />
-          </View>
-          <Text style={styles.permissionTitle}>Camera Access Needed</Text>
+          <Ionicons name="camera" size={48} color="#ffffff" />
+          <Text style={styles.permissionTitle}>Camera Access Required</Text>
           <Text style={styles.permissionText}>
-            We need your permission to access the camera so you can preview the feed live in the app.
+            Please grant camera permission to use the match viewfinder.
           </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission} activeOpacity={0.8}>
-            <Text style={styles.permissionButtonText}>Allow Camera Access</Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Allow Camera</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  // 3. Helper functions for controls
   function toggleCameraFacing() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
@@ -58,96 +69,143 @@ export default function App() {
     setTorch(current => !current);
   }
 
-  function toggleGrid() {
-    setGridVisible(current => !current);
+  function zoomIn() {
+    setZoom(prev => Math.min(prev + 0.1, 1));
   }
 
-  // 4. Render main premium Camera UI
+  function zoomOut() {
+    setZoom(prev => Math.max(prev - 0.1, 0));
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header Area */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>POCKET-VAR</Text>
-          <Text style={styles.headerSubtitle}>VIEWFINDER</Text>
-        </View>
-        <TouchableOpacity style={styles.iconButton} onPress={toggleTorch} activeOpacity={0.7}>
-          <Ionicons 
-            name={torch ? "flash" : "flash-off"} 
-            size={22} 
-            color={torch ? "#eab308" : "#ffffff"} 
-          />
-        </TouchableOpacity>
-      </View>
+      {currentScreen === 'camera' ? (
+        <View style={isLandscape ? styles.landscapeLayout : styles.portraitLayout}>
+          
+          {/* Camera Viewport Area */}
+          <View style={styles.viewportContainer}>
+            <CameraView 
+              style={styles.camera} 
+              facing={facing}
+              enableTorch={torch}
+              zoom={zoom}
+            >
+              {/* Permanent Grid Overlay (Rule of Thirds) */}
+              <View style={styles.gridOverlay}>
+                <View style={styles.gridRow}>
+                  <View style={styles.gridCell} />
+                  <View style={[styles.gridCell, styles.borderLeftRight]} />
+                  <View style={styles.gridCell} />
+                </View>
+                <View style={[styles.gridRow, styles.borderTopBottom]}>
+                  <View style={styles.gridCell} />
+                  <View style={[styles.gridCell, styles.borderLeftRight]} />
+                  <View style={styles.gridCell} />
+                </View>
+                <View style={styles.gridRow}>
+                  <View style={styles.gridCell} />
+                  <View style={[styles.gridCell, styles.borderLeftRight]} />
+                  <View style={styles.gridCell} />
+                </View>
+              </View>
 
-      {/* Main Camera Viewport Panel */}
-      <View style={styles.viewportContainer}>
-        <CameraView 
-          style={styles.camera} 
-          facing={facing}
-          enableTorch={torch}
-        >
-          {/* Rule of Thirds Grid Overlay */}
-          {gridVisible && (
-            <View style={styles.gridOverlay}>
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={[styles.gridCell, styles.borderLeftRight]} />
-                <View style={styles.gridCell} />
+              {/* HUD / Status Indicators */}
+              <View style={styles.hudOverlay}>
+                <View style={styles.hudBadge}>
+                  <View style={styles.redDot} />
+                  <Text style={styles.hudText}>POCKET VAR • LIVE PREVIEW</Text>
+                </View>
+                <View style={styles.hudBadge}>
+                  <Text style={styles.hudText}>ZOOM: {Math.round(zoom * 100)}%</Text>
+                </View>
               </View>
-              <View style={[styles.gridRow, styles.borderTopBottom]}>
-                <View style={styles.gridCell} />
-                <View style={[styles.gridCell, styles.borderLeftRight]} />
-                <View style={styles.gridCell} />
-              </View>
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={[styles.gridCell, styles.borderLeftRight]} />
-                <View style={styles.gridCell} />
-              </View>
-            </View>
-          )}
 
-          {/* Dynamic HUD badges overlaying the camera preview */}
-          <View style={styles.hudOverlay}>
-            <View style={styles.hudBadge}>
-              <View style={styles.redDot} />
-              <Text style={styles.hudText}>REC PREVIEW</Text>
-            </View>
-            <View style={styles.hudBadge}>
-              <Text style={styles.hudText}>{facing.toUpperCase()} CAM</Text>
+              {/* Simple Torch toggle on viewfinder */}
+              <TouchableOpacity style={styles.torchButton} onPress={toggleTorch}>
+                <Ionicons 
+                  name={torch ? "flash" : "flash-off"} 
+                  size={20} 
+                  color={torch ? "#eab308" : "#ffffff"} 
+                />
+              </TouchableOpacity>
+
+              {/* Zoom Controls Panel */}
+              <View style={styles.zoomControls}>
+                <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut}>
+                  <Text style={styles.zoomBtnText}>-</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.zoomPreset} onPress={() => setZoom(0)}>
+                  <Text style={[styles.zoomPresetText, zoom === 0 && styles.activeZoomPreset]}>1x</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.zoomPreset} onPress={() => setZoom(0.2)}>
+                  <Text style={[styles.zoomPresetText, zoom === 0.2 && styles.activeZoomPreset]}>2x</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.zoomPreset} onPress={() => setZoom(0.5)}>
+                  <Text style={[styles.zoomPresetText, zoom === 0.5 && styles.activeZoomPreset]}>5x</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn}>
+                  <Text style={styles.zoomBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </CameraView>
+          </View>
+
+          {/* Simple Control Bar */}
+          <View style={isLandscape ? styles.controlsLandscape : styles.controlsPortrait}>
+            <View style={isLandscape ? styles.controlColLandscape : styles.controlRowPortrait}>
+              
+              {/* Bottom Left / Top: Review button */}
+              <TouchableOpacity style={styles.basicButton} onPress={() => setCurrentScreen('review')}>
+                <Ionicons name="albums" size={24} color="#ffffff" />
+                <Text style={styles.basicButtonText}>Review</Text>
+              </TouchableOpacity>
+
+              {/* Center: Shutter Button (Mock record event) */}
+              <View style={styles.shutterButton}>
+                <View style={styles.shutterInner} />
+              </View>
+
+              {/* Bottom Right / Bottom: Flip Lens button */}
+              <TouchableOpacity style={styles.basicButton} onPress={toggleCameraFacing}>
+                <Ionicons name="camera-reverse" size={24} color="#ffffff" />
+                <Text style={styles.basicButtonText}>Flip</Text>
+              </TouchableOpacity>
+
             </View>
           </View>
-        </CameraView>
-      </View>
 
-      {/* Bottom control deck */}
-      <View style={styles.controlsContainer}>
-        <View style={styles.controlRow}>
-          {/* Grid View toggle */}
-          <TouchableOpacity 
-            style={[styles.sideButton, gridVisible && styles.sideButtonActive]} 
-            onPress={toggleGrid}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="grid-outline" size={24} color={gridVisible ? "#3b82f6" : "#ffffff"} />
-          </TouchableOpacity>
-
-          {/* Custom iOS Shutter button structure */}
-          <View style={styles.shutterOuter}>
-            <TouchableOpacity style={styles.shutterInner} activeOpacity={0.85}>
-              <View style={styles.shutterCenter} />
+        </View>
+      ) : (
+        /* Review Screen */
+        <View style={styles.reviewContainer}>
+          <View style={styles.reviewHeader}>
+            <TouchableOpacity onPress={() => setCurrentScreen('camera')} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#ffffff" />
+              <Text style={styles.backButtonText}>Viewfinder</Text>
             </TouchableOpacity>
+            <Text style={styles.reviewTitle}>Match Clip Review</Text>
+            <View style={{ width: 80 }} />
           </View>
 
-          {/* Camera Lens Flip Button */}
-          <TouchableOpacity style={styles.sideButton} onPress={toggleCameraFacing} activeOpacity={0.7}>
-            <Ionicons name="camera-reverse-outline" size={26} color="#ffffff" />
-          </TouchableOpacity>
+          <ScrollView contentContainerStyle={styles.clipsListContent} style={styles.clipsList}>
+            <Text style={styles.sectionHeader}>Pocket VAR Matches & Clips</Text>
+            {mockClips.map((clip) => (
+              <View key={clip.id} style={styles.clipCard}>
+                <View style={styles.clipInfo}>
+                  <Text style={styles.clipType}>{clip.type}</Text>
+                  <Text style={styles.clipMeta}>Timestamp: {clip.timestamp} | {clip.angles} Angles Synced</Text>
+                </View>
+                <TouchableOpacity style={styles.playButton}>
+                  <Ionicons name="play" size={16} color="#ffffff" />
+                  <Text style={styles.playButtonText}>Replay</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
         </View>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -156,137 +214,89 @@ const styles = StyleSheet.create({
   // Global Container
   container: {
     flex: 1,
-    backgroundColor: '#09090b', // Deep zinc/black premium background
+    backgroundColor: '#000000',
   },
-  
-  // Loading State
+
+  // Loading Screen
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    color: '#a1a1aa',
+    marginTop: 10,
+    color: '#ffffff',
     fontSize: 14,
-    fontWeight: '500',
   },
 
   // Permissions Screen
   permissionContainer: {
     flex: 1,
-    backgroundColor: '#09090b',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    padding: 20,
   },
   permissionCard: {
     width: '100%',
-    maxWidth: 340,
-    backgroundColor: '#18181b', // Zinc-900 card
-    borderRadius: 24,
-    padding: 28,
+    maxWidth: 300,
+    backgroundColor: '#111111',
+    borderRadius: 12,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#27272a',
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: '#333333',
   },
   permissionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 10,
+    marginTop: 12,
+    marginBottom: 8,
     textAlign: 'center',
   },
   permissionText: {
-    fontSize: 14,
-    color: '#a1a1aa',
+    fontSize: 13,
+    color: '#aaaaaa',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   permissionButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 6,
     width: '100%',
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: '#3b82f6', // Premium iOS blue
-    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   permissionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
     color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 
-  // Main UI Header
-  header: {
-    height: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginTop: 8,
-  },
-  headerTitleContainer: {
+  // Screen Layouts
+  portraitLayout: {
+    flex: 1,
     flexDirection: 'column',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: 2,
-  },
-  headerSubtitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#3b82f6',
-    letterSpacing: 4,
-    marginTop: 1,
-  },
-  iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#18181b',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#27272a',
+  landscapeLayout: {
+    flex: 1,
+    flexDirection: 'row',
   },
 
-  // Viewport Area
+  // Viewport
   viewportContainer: {
     flex: 1,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderRadius: 28,
-    overflow: 'hidden',
     backgroundColor: '#000000',
-    borderWidth: 1,
-    borderColor: '#27272a',
+    position: 'relative',
   },
   camera: {
     flex: 1,
   },
 
-  // Grid Overlay Styles
+  // Grid lines (Permanent)
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -300,99 +310,225 @@ const styles = StyleSheet.create({
   borderLeftRight: {
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   borderTopBottom: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
 
-  // HUD Badges
+  // Viewfinder HUD
   hudOverlay: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
+    top: 16,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   hudBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(9, 9, 11, 0.75)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 4,
   },
   redDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#ff3b30',
     marginRight: 6,
   },
   hudText: {
-    fontSize: 10,
-    fontWeight: '700',
     color: '#ffffff',
-    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 
-  // Control Deck
-  controlsContainer: {
-    height: 120,
+  // Torch Button
+  torchButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 16,
   },
-  controlRow: {
+
+  // Zoom Controls Panel
+  zoomControls: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 40,
-  },
-  sideButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#18181b',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 8,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#27272a',
+    borderColor: '#333333',
   },
-  sideButtonActive: {
-    borderColor: 'rgba(59, 130, 246, 0.4)',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  zoomBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
-  
-  // Circular Shutter Button structure
-  shutterOuter: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+  zoomBtnText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  zoomPreset: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  zoomPresetText: {
+    color: '#888888',
+    fontSize: 13,
+  },
+  activeZoomPreset: {
+    color: '#3b82f6',
+    fontWeight: 'bold',
+  },
+
+  // Basic Controls Layout
+  controlsPortrait: {
+    height: 100,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+  },
+  controlsLandscape: {
+    width: 100,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+  },
+  controlRowPortrait: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  controlColLandscape: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 30,
+    height: '100%',
+  },
+
+  // Buttons style
+  basicButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 50,
+  },
+  basicButtonText: {
+    color: '#ffffff',
+    fontSize: 10,
+    marginTop: 4,
+  },
+  shutterButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 4,
     borderColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
   },
   shutterInner: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#ff3b30',
+  },
+
+  // Review Screen Styles
+  reviewContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#222222',
+  },
+  backButton: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  shutterCenter: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#ffffff',
+  backButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  reviewTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  clipsList: {
+    flex: 1,
+  },
+  clipsListContent: {
+    padding: 16,
+  },
+  sectionHeader: {
+    color: '#888888',
+    fontSize: 13,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  clipCard: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  clipInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  clipType: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  clipMeta: {
+    color: '#888888',
+    fontSize: 12,
+  },
+  playButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222222',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+  },
+  playButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: '500',
   },
 });
