@@ -1,0 +1,76 @@
+import { StyleSheet } from 'react-native';
+
+export default StyleSheet.create({
+  createMatchScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#000000',
+  },
+  brandContainer: {
+    alignItems: 'center',
+    marginBottom: 36,
+  },
+  brandTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 3,
+    marginTop: 12,
+  },
+  brandSubtitle: {
+    fontSize: 10,
+    color: '#3b82f6',
+    letterSpacing: 2,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+  },
+  formContainer: {
+    backgroundColor: '#111111',
+    borderRadius: 12,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  formTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  inputLabel: {
+    color: '#888888',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  textInput: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#333333',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  createButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  createButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+});
