@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadii, Typography } from '../../constants/theme';
 
@@ -17,7 +18,7 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
   onOpenSettings,
 }) => {
   return (
-    <View style={styles.container}>
+    <BlurView tint="systemThickMaterialDark" intensity={100} style={styles.container}>
       {/* VAR Review Button */}
       <TouchableOpacity style={styles.varButton} onPress={onOpenVARReview} activeOpacity={0.8}>
         <View style={styles.varIconBox}>
@@ -36,20 +37,17 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
         <Ionicons name="settings-outline" size={24} color={Colors.onBackground} />
         <Text style={styles.btnLabel}>SETTINGS</Text>
       </TouchableOpacity>
-    </View>
+    </BlurView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     height: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.surfaceHigh,
   },
   varButton: {
     alignItems: 'center',

@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, StatusBar as RNStatusBar } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider } from './src/store/AppContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -7,19 +8,20 @@ import { Colors } from './src/constants/theme';
 
 export default function App() {
   return (
-    <AppProvider>
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="light" backgroundColor={Colors.background} />
-        <AppNavigator />
-      </SafeAreaView>
-    </AppProvider>
+    <SafeAreaProvider>
+      <AppProvider>
+        <View style={styles.container}>
+          <StatusBar style="light" translucent />
+          <AppNavigator />
+        </View>
+      </AppProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: Colors.background,
-    paddingTop: RNStatusBar.currentHeight || 0,
   },
 });

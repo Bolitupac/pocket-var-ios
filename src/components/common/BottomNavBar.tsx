@@ -32,7 +32,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           onPress={onPlusPress}
           activeOpacity={0.85}
         >
-          <Ionicons name="add" size={32} color={Colors.onPrimary} />
+          <Ionicons name="add" size={32} color={Colors.onBackground} />
         </TouchableOpacity>
       );
     }
@@ -54,6 +54,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         <Text style={[styles.navText, isActive && { color: Colors.primary }]}>
           {tab.name}
         </Text>
+        {isActive && <View style={styles.activeDot} />}
       </TouchableOpacity>
     );
   };
@@ -77,8 +78,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     borderRadius: 36,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    backgroundColor: 'rgba(30, 30, 35, 0.85)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(20, 20, 22, 0.85)',
     overflow: 'hidden',
   },
   nav: {
@@ -92,6 +93,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: 54,
+    height: '100%',
+    position: 'relative',
+    paddingBottom: 4,
   },
   navText: {
     ...Typography.caption,
@@ -99,19 +103,24 @@ const styles = StyleSheet.create({
     color: Colors.mutedText,
     marginTop: 2,
   },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
+    position: 'absolute',
+    bottom: 6,
+    alignSelf: 'center',
+  },
   floatingPlusBtn: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     top: -16,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    borderWidth: 3,
-    borderColor: Colors.background,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
 });

@@ -11,7 +11,7 @@ interface GlassEventFlagButtonProps {
 export const GlassEventFlagButton: React.FC<GlassEventFlagButtonProps> = ({ onPress }) => {
   if (isLiquidGlassAvailable()) {
     return (
-      <GlassView style={styles.glassContainer}>
+      <GlassView style={styles.glassContainer} glassEffectStyle="clear">
         <TouchableOpacity style={styles.touchable} onPress={onPress} activeOpacity={0.8}>
           <Ionicons name="flag" size={16} color={Colors.primary} />
           <Text style={styles.text}>FLAG EVENT</Text>
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadii.pill,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   touchable: {
     flexDirection: 'row',
@@ -44,9 +44,9 @@ const styles = StyleSheet.create({
   fallbackButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadii.pill,

@@ -11,7 +11,7 @@ interface CircularBackButtonProps {
 export const CircularBackButton: React.FC<CircularBackButtonProps> = ({ onPress }) => {
   if (isLiquidGlassAvailable()) {
     return (
-      <GlassView style={styles.glassContainer}>
+      <GlassView style={styles.glassContainer} glassEffectStyle="clear">
         <TouchableOpacity style={styles.touchable} onPress={onPress} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={20} color={Colors.onBackground} style={styles.icon} />
         </TouchableOpacity>
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   touchable: {
     flex: 1,
@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   icon: {
     marginLeft: -2, // Optically center the chevron

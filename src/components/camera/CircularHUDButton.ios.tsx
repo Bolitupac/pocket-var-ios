@@ -19,7 +19,7 @@ export const CircularHUDButton: React.FC<CircularHUDButtonProps> = ({
 }) => {
   if (isLiquidGlassAvailable()) {
     return (
-      <GlassView style={[styles.glassContainer, style]}>
+      <GlassView style={[styles.glassContainer, style]} glassEffectStyle="clear">
         <TouchableOpacity style={styles.touchable} onPress={onPress} activeOpacity={0.8}>
           <Ionicons name={iconName} size={20} color={color} />
         </TouchableOpacity>
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   touchable: {
     flex: 1,
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
 });
