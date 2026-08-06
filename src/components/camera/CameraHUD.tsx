@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, BorderRadii, Typography } from '../../constants/theme';
+import { CircularHUDButton } from './CircularHUDButton';
+import { GlassEventFlagButton } from './GlassEventFlagButton';
 
 interface CameraHUDProps {
   matchTitle: string;
@@ -36,26 +37,17 @@ export const CameraHUD: React.FC<CameraHUDProps> = ({
     <View style={styles.container}>
       {/* Top Bar Controls */}
       <View style={styles.topRow}>
-        <TouchableOpacity style={styles.iconBtn} onPress={onExit} activeOpacity={0.8}>
-          <Ionicons name="arrow-back" size={20} color={Colors.onBackground} />
-        </TouchableOpacity>
+        <CircularHUDButton onPress={onExit} iconName="arrow-back" />
 
-        <TouchableOpacity style={styles.eventFlagBtn} onPress={onOpenEventSelector} activeOpacity={0.8}>
-          <Ionicons name="flag" size={16} color={Colors.primary} />
-          <Text style={styles.eventFlagText}>FLAG EVENT</Text>
-        </TouchableOpacity>
+        <GlassEventFlagButton onPress={onOpenEventSelector} />
 
         <View style={styles.rightIcons}>
-          <TouchableOpacity style={styles.iconBtn} onPress={onToggleFlash} activeOpacity={0.8}>
-            <Ionicons
-              name={flashOn ? 'flash' : 'flash-off'}
-              size={18}
-              color={flashOn ? Colors.warningGold : Colors.onBackground}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={onToggleCamera} activeOpacity={0.8}>
-            <Ionicons name="camera-reverse" size={20} color={Colors.onBackground} />
-          </TouchableOpacity>
+          <CircularHUDButton
+            onPress={onToggleFlash}
+            iconName={flashOn ? 'flash' : 'flash-off'}
+            color={flashOn ? Colors.warningGold : Colors.onBackground}
+          />
+          <CircularHUDButton onPress={onToggleCamera} iconName="camera-reverse" />
         </View>
       </View>
 
@@ -95,33 +87,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.sm,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadii.pill,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eventFlagBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: BorderRadii.pill,
-  },
-  eventFlagText: {
-    ...Typography.caption,
-    fontWeight: '800',
-    color: Colors.primary,
-    marginLeft: 6,
-    letterSpacing: 0.5,
   },
   rightIcons: {
     flexDirection: 'row',

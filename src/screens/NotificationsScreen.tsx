@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.md,
+    paddingBottom: 110,
     gap: Spacing.sm,
   },
   card: {

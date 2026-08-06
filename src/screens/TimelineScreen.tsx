@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingBottom: 110,
   },
   matchGroup: {
     marginBottom: Spacing.lg,

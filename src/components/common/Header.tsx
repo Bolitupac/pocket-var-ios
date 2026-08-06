@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography } from '../../constants/theme';
+import { CircularBackButton } from './CircularBackButton';
 
 interface HeaderProps {
   title: string;
@@ -15,9 +15,9 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, rightEl
     <View style={styles.container}>
       <View style={styles.leftContainer}>
         {onBack && (
-          <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={24} color={Colors.onBackground} />
-          </TouchableOpacity>
+          <View style={styles.backButtonWrapper}>
+            <CircularBackButton onPress={onBack} />
+          </View>
         )}
         <View>
           <Text style={styles.title}>{title}</Text>
@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onBack, rightEl
 
 const styles = StyleSheet.create({
   container: {
-    height: 56,
+    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -44,9 +44,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  backButton: {
+  backButtonWrapper: {
     marginRight: Spacing.sm,
-    padding: Spacing.xs,
   },
   title: {
     ...Typography.headlineMd,
